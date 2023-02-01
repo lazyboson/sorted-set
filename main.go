@@ -61,7 +61,7 @@ func main() {
 		fmt.Println(err)
 	}
 	data = &Data{
-		Status: "complete",
+		Status: "complet",
 		Val:    "5"}
 	err = AddKeyVal("rahul", data)
 	if err != nil {
@@ -77,7 +77,7 @@ func main() {
     	local value = redis.call('GET', member)
     	if value then
 			local data = cjson.decode(value)
-    	    if data.status == "completed" then
+    	    if data.status == "completed" or data.val == "5" then
     	        table.insert(result, { member, score })
     	        if #result == tonumber(KEYS[2]) then
     	            break
@@ -97,11 +97,17 @@ func main() {
 	}
 	membersWithScore := make(map[string]uint32)
 	for i := 0; i < len(result); i++ {
-		memberSco, _ := redis.Values(result[i], nil)
-		member := string(memberSco[0].([]byte))
-		sScore := string(memberSco[1].([]byte))
-		u32, _ := strconv.ParseUint(sScore, 10, 32)
-		membersWithScore[member] = uint32(u32)
+		memberSco, err := redis.Values(result[i], nil)
+		if err != nil {
+		}
+		if len(memberSco) == 2 {
+			member, okMember := memberSco[0].([]byte)
+			sScore, oksScore := memberSco[1].([]byte)
+			if !okMember || !oksScore {
+			}
+			score, _ := strconv.ParseUint(string(sScore), 10, 32)
+			membersWithScore[string(member)] = uint32(score)
+		}
 	}
 
 	fmt.Println(membersWithScore)
@@ -131,7 +137,7 @@ func AddKeyVal(key string, data *Data) error {
 
 	dataBytes, _ := json.Marshal(data)
 
-	_, err = redis.String(conn.Do("SET", key, dataBytes))
+	_, err = redis.String(conn.Do("SET", key, string(dataBytes)))
 	if err != nil {
 		return err
 	}
